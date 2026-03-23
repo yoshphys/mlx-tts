@@ -8,21 +8,21 @@ TOML-driven TTS wrapper for [mlx-audio](https://github.com/Blaizzy/mlx-audio) on
 - [mlx-audio](https://github.com/Blaizzy/mlx-audio)
 - soundfile
 
-```
+```sh
 pip install mlx-audio soundfile
 ```
 
 ## Usage
 
-```
+```sh
 python mlx_tts.py config.toml
-python mlx_tts.py config.toml --dry-run
+python mlx_tts.py config.toml --dry-run   # validate without running
 ```
 
 Output paths are derived automatically from the TOML filename:
 
-| TOML | Output |
-|------|--------|
+| Script section | Output |
+|----------------|--------|
 | `[script]` | `./<stem>.<format>` |
 | `[[script]]` | `./<stem>/<stem>_000.<format>`, `<stem>_001.<format>`, … |
 
@@ -37,14 +37,14 @@ model = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-4bit"
 text = "Hello, world."
 ```
 
-### Full (single text)
+### Single text
 
 ```toml
 format = "wav"   # wav | flac | mp3  (default: wav)
 model  = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-4bit"
 
 [params]
-# Passed directly to model.generate() — any key the model accepts is valid.
+# Keys are passed directly to model.generate() — any argument the model accepts is valid.
 voice       = "Ryan"
 lang_code   = "auto"
 speed       = 1.0
@@ -57,6 +57,8 @@ Hello, world. This is a test.
 ```
 
 ### Multiple texts
+
+`[[script]]` defines a list of entries. Each entry can override any `[params]` key. The only reserved key per entry is `text`.
 
 ```toml
 format = "wav"
@@ -75,8 +77,6 @@ text  = "And I am Vivian. Nice to meet you!"
 voice = "Vivian"
 ```
 
-`[params]` provides global defaults. Any key in a `[[script]]` entry overrides the corresponding `[params]` value for that entry. The only reserved key is `text`.
-
 ### Voice cloning
 
 ```toml
@@ -91,10 +91,58 @@ lang_code = "auto"
 text = "This is my cloned voice."
 ```
 
-## Notes
+## Parameters
 
-- **IndexTTS**: `ref_audio` is a required argument with no default. It must be specified in `[params]` or the `[[script]]` entry.
-- Models not supported by mlx-audio itself are out of scope.
+All keys in `[params]` are passed directly to `model.generate()`. Supported parameters vary by model.
+
+### Descriptions
+
+| param | type | description |
+|-------|------|-------------|
+| `voice` | string | Preset speaker name. Available names differ per model (e.g. `"Ryan"`, `"Vivian"` for Qwen3-TTS; `"af_heart"` for Kokoro). |
+| `speaker` | int | Speaker index for models that identify speakers numerically. |
+| `lang_code` | string | Language code. `"auto"` works for Qwen3-TTS. Kokoro uses single-letter codes (`"a"` = American English, `"b"` = British English, `"j"` = Japanese, etc.). |
+| `instruct` | string | Emotion/style instruction (Qwen3-TTS CustomVoice) or free-text voice description (Qwen3-TTS VoiceDesign). |
+| `speed` | float | Speech speed multiplier. `1.0` = normal. |
+| `temperature` | float | Sampling temperature. Lower = more stable; higher = more varied. |
+| `top_k` | int | Restricts sampling to the top-k most likely tokens at each step. |
+| `top_p` | float | Nucleus sampling: tokens are drawn from the smallest set whose cumulative probability exceeds this value. |
+| `repetition_penalty` | float | Penalty applied to repeated tokens. `1.0` disables it. |
+| `max_tokens` | int | Maximum number of tokens to generate. |
+| `ref_audio` | string | Path to a reference audio file for voice cloning. |
+| `ref_text` | string | Transcript of `ref_audio`. Providing this improves cloning quality. |
+| `split_pattern` | string | Regex pattern used to split long text into chunks (e.g. `"\n"`, `r"(?<=[.!?])\s+"`). |
+| `stream` | bool | Enable streaming generation; audio chunks are yielded incrementally. |
+| `streaming_interval` | float | Duration in seconds of each streamed audio chunk. |
+
+### Support by model
+
+`✓*` = required (no default). `✓†` = supported under a different key name.
+
+| param | bark | pocket_tts | echo_tts | qwen3_tts | outetts | kokoro | spark | voxcpm | sesame | chatterbox | indextts | soprano | fish_qwen3_omni | kitten_tts | dia | llama |
+|-------|:----:|:----------:|:--------:|:---------:|:-------:|:------:|:-----:|:------:|:------:|:----------:|:--------:|:-------:|:---------------:|:----------:|:---:|:-----:|
+| `voice` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | | ✓ | ✓ | | | | ✓ | ✓ | |
+| `speaker` | | | | | | | | | ✓ | ✓ | | | | | | |
+| `lang_code` | | | | ✓ | | ✓ | | | | | | | | ✓ | | |
+| `instruct` | | | | ✓ | | | | | | | | | | | | |
+| `speed` | | | | ✓ | | ✓ | ✓ | | | | | | | ✓ | | |
+| `temperature` | | ✓ | | ✓ | ✓ | | ✓ | | | | | ✓ | ✓ | | ✓ | |
+| `top_k` | | | | ✓ | ✓ | | ✓ | | | | | ✓ | ✓ | | | |
+| `top_p` | | | | ✓ | ✓ | | ✓ | | | | | ✓ | ✓ | | ✓ | |
+| `repetition_penalty` | | | | ✓ | ✓ | | | | | | | ✓ | | | | |
+| `max_tokens` | | | | ✓ | ✓ | | ✓ | ✓ | | | ✓ | ✓† | ✓† | | | |
+| `ref_audio` | | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ | ✓ | ✓ | ✓* | ✓† | | | ✓ | ✓ |
+| `ref_text` | | | | ✓ | | | ✓ | ✓ | ✓ | ✓ | | | | | ✓ | ✓ |
+| `split_pattern` | | | | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ | | ✓ | | ✓ | ✓ | |
+| `stream` | | ✓ | ✓ | ✓ | ✓ | | | | ✓ | ✓ | | | | | | |
+| `streaming_interval` | | ✓ | | ✓ | ✓ | | | | ✓ | ✓ | | | | | | |
+
+**Model-specific notes:**
+- `indextts`: `ref_audio` is required with no default
+- `soprano`: uses `reference_audio` instead of `ref_audio`, and `max_new_tokens` instead of `max_tokens`
+- `fish_qwen3_omni`: uses `max_new_tokens` instead of `max_tokens`
+- `spark`: has additional params `gender` (string) and `pitch` (float)
+- `voxcpm`: has additional params `inference_timesteps` (int) and `cfg_value` (float)
 
 ## Examples
 
