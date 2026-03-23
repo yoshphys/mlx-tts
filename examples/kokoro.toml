@@ -1,0 +1,15 @@
+# Kokoro TTS
+# Output: ./kokoro.wav
+
+format = "wav"
+model = "mlx-community/Kokoro-82M-bf16"
+
+[params]
+voice = "af_heart"
+lang_code = "a"   # "a" = American English, "b" = British English, "j" = Japanese, etc.
+speed = 1.0
+
+[script]
+text = """
+Hello from Kokoro! This model uses different voice names and lang codes.
+"""

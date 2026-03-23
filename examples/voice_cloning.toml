@@ -1,0 +1,16 @@
+# Voice cloning — Qwen3-TTS (Base) with reference audio
+# Output: ./voice_cloning.wav
+
+format = "wav"
+model = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16"
+
+[params]
+ref_audio = "reference.wav"
+ref_text  = "This is what my voice sounds like."
+lang_code = "auto"
+temperature = 0.9
+
+[script]
+text = """
+This is my cloned voice speaking a new sentence.
+"""

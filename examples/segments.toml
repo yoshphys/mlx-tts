@@ -1,0 +1,22 @@
+# Multiple scripts — per-entry voice override
+# Output: ./segments/segments_000.wav, ./segments/segments_001.wav
+
+format = "wav"
+model = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-4bit"
+
+[params]
+# Global defaults — overridable per entry
+lang_code = "auto"
+speed = 1.0
+temperature = 0.9
+top_k = 50
+top_p = 1.0
+repetition_penalty = 1.05
+
+[[script]]
+text = "Hello, my name is Ryan."
+voice = "Ryan"
+
+[[script]]
+text = "And I am Vivian. Nice to meet you!"
+voice = "Vivian"
