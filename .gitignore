@@ -5,6 +5,10 @@ __pycache__/
 .venv/
 dist/
 
+# test
+test/
+test.toml
+
 # Audio output
 *.wav
 *.flac
