@@ -5,6 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "mlx-audio @ git+https://github.com/Blaizzy/mlx-audio.git",
+    "mlx-audio>=0.4.3",
     "soundfile>=0.13.1",
 ]
