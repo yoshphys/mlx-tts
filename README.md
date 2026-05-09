@@ -58,7 +58,7 @@ Hello, world. This is a test.
 
 ### Multiple texts
 
-`[[script]]` defines a list of entries. Each entry can override any `[params]` key. The only reserved key per entry is `text`.
+`[[script]]` defines a list of entries. Each entry can override any `[params]` key. Reserved keys per entry: `text`, `enabled`.
 
 ```toml
 format = "wav"
@@ -75,6 +75,25 @@ voice = "Ryan"
 [[script]]
 text  = "And I am Vivian. Nice to meet you!"
 voice = "Vivian"
+```
+
+### Disabling entries
+
+Set `enabled = false` to skip generation of an entry while keeping its index. This ensures the output filenames of subsequent entries are not affected.
+
+```toml
+[[script]]
+text  = "This is segments_000."
+voice = "Ryan"
+
+[[script]]
+enabled = false
+text    = "This entry is skipped. Its slot (001) is still reserved."
+voice   = "Vivian"
+
+[[script]]
+text  = "This is segments_002, not 001."
+voice = "Ryan"
 ```
 
 ### Voice cloning

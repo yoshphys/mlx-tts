@@ -1,5 +1,8 @@
 # Multiple scripts — per-entry voice override
-# Output: ./segments/segments_000.wav, ./segments/segments_001.wav
+# Output: ./segments/segments_000.wav, segments_001.wav (skipped), segments_002.wav
+#
+# enabled = false skips generation but keeps the entry in the index,
+# so output filenames of subsequent entries are not affected.
 
 format = "wav"
 model = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-4bit"
@@ -18,5 +21,10 @@ text = "Hello, my name is Ryan."
 voice = "Ryan"
 
 [[script]]
-text = "And I am Vivian. Nice to meet you!"
+enabled = false
+text = "This entry is disabled. It holds index 001 so the next file stays at 002."
 voice = "Vivian"
+
+[[script]]
+text = "And this is still segments_002, even though 001 was skipped."
+voice = "Ryan"

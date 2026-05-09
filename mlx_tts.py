@@ -55,7 +55,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-_RESERVED_KEYS = {"text"}
+_RESERVED_KEYS = {"text", "enabled"}
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def _resolve_segments(cfg: dict, stem: str, fmt: str) -> list[dict]:
         # [[script]] — multiple entries
         out_dir = Path(stem)
         raw: list[dict] = [
-            {**seg, "_output": str(out_dir / f"{stem}_{i:03d}.{fmt}")}
+            {**seg, "_output": str(out_dir / f"{stem}_{i:03d}.{fmt}"), "_enabled": seg.get("enabled", True)}
             for i, seg in enumerate(script)
         ]
     elif isinstance(script, dict):
@@ -127,7 +127,7 @@ def _resolve_segments(cfg: dict, stem: str, fmt: str) -> list[dict]:
         if not script_text:
             print("[error] [script] text is empty.", file=sys.stderr)
             sys.exit(1)
-        raw = [{**script, "text": script_text, "_output": f"{stem}.{fmt}"}]
+        raw = [{**script, "text": script_text, "_output": f"{stem}.{fmt}", "_enabled": script.get("enabled", True)}]
     else:
         print(
             "[error] No text found. Add [script] text = '...' or [[script]] entries.",
@@ -138,13 +138,13 @@ def _resolve_segments(cfg: dict, stem: str, fmt: str) -> list[dict]:
     segments: list[dict] = []
     for i, seg in enumerate(raw):
         text = seg.get("text", "").strip()
-        if not text:
+        if not text and seg["_enabled"]:
             print(f"[warn] Segment {i} has empty text; skipping.", file=sys.stderr)
             continue
         segments.append({**seg, "text": text})
 
-    if not segments:
-        print("[error] No valid segments to process.", file=sys.stderr)
+    if not any(s["_enabled"] for s in segments):
+        print("[error] No enabled segments to process.", file=sys.stderr)
         sys.exit(1)
 
     return segments
@@ -211,11 +211,13 @@ def main() -> None:
     out_fmt: str = cfg.get("format", "wav")
     segments = _resolve_segments(cfg, stem, out_fmt)
 
+    enabled_count = sum(1 for s in segments if s["_enabled"])
     print(f"[config] Model    : {model_id}")
-    print(f"[config] Segments : {len(segments)}")
+    print(f"[config] Segments : {len(segments)} ({enabled_count} enabled)")
     for i, seg in enumerate(segments):
         preview = seg["text"][:60] + ("..." if len(seg["text"]) > 60 else "")
-        print(f"  [{i:03d}] {preview!r} -> {seg['_output']}")
+        status = "" if seg["_enabled"] else " [disabled]"
+        print(f"  [{i:03d}] {preview!r} -> {seg['_output']}{status}")
 
     if args.dry_run:
         print("\n[dry-run] Config OK. Exiting without generating audio.")
@@ -233,6 +235,9 @@ def main() -> None:
     print(f"[model] Loaded ({time.time() - t0:.1f}s)\n")
 
     for seg in segments:
+        if not seg["_enabled"]:
+            print(f"[skip] {seg['_output']} (disabled)")
+            continue
         params = _build_params(global_params, seg)
         _run_segment(
             text=seg["text"],
